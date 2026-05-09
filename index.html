@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Cam & Sheet Sync</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: #000;
+            min-height: 300px;
+        }
+        #videoFeed {
+            width: 100%;
+            height: auto;
+            transform: scaleX(-1);
+        }
+        #capturedCanvas {
+            display: none;
+        }
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        /* Overlay untuk memulai */
+        #startOverlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-4">
+
+    <header class="w-full max-w-2xl mb-6 text-center">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            GPS Camera Watermark
+        </h1>
+        <p class="text-slate-400 text-sm mt-2">Ambil foto dengan lokasi otomatis & simpan ke Google Sheets</p>
+    </header>
+
+    <main class="w-full max-w-2xl space-y-6">
+        <!-- Kamera / Preview Section -->
+        <div class="video-container shadow-2xl border-2 border-slate-700">
+            <!-- Tombol Mulai (Trigger Izin) -->
+            <div id="startOverlay">
+                <div class="mb-4 text-blue-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                </div>
+                <h2 class="text-xl font-bold mb-2">Izin Akses Diperlukan</h2>
+                <p class="text-slate-400 text-sm mb-6">Klik tombol di bawah untuk mengaktifkan Kamera dan GPS</p>
+                <button id="btnStartApp" class="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-xl font-bold transition-all transform active:scale-95 shadow-lg shadow-blue-500/20">
+                    Aktifkan Kamera & GPS
+                </button>
+            </div>
+
+            <video id="videoFeed" autoplay playsinline></video>
+            <div id="previewContainer" class="absolute inset-0 hidden bg-black">
+                <img id="resultImage" class="w-full h-full object-contain" src="" alt="Captured">
+            </div>
+            
+            <!-- Overlay Status -->
+            <div class="absolute top-4 left-4 bg-black/50 backdrop-blur-md p-2 rounded-lg text-xs space-y-1">
+                <div class="flex items-center gap-2">
+                    <span id="gpsStatusDot" class="status-dot bg-red-500"></span>
+                    <span id="gpsStatusText">GPS Mati</span>
+                </div>
+                <div id="coordsDisplay" class="font-mono text-emerald-400">0.0000, 0.0000</div>
+            </div>
+        </div>
+
+        <!-- Kontrol -->
+        <div id="controlsGroup" class="flex flex-wrap justify-center gap-4 opacity-50 pointer-events-none transition-opacity duration-500">
+            <button id="btnCapture" class="bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all px-8 py-3 rounded-full font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                Ambil Foto
+            </button>
+            
+            <button id="btnRetake" class="hidden bg-slate-700 hover:bg-slate-600 px-8 py-3 rounded-full font-semibold">
+                Ulangi
+            </button>
+
+            <button id="btnSend" class="hidden bg-emerald-600 hover:bg-emerald-700 px-8 py-3 rounded-full font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Kirim ke Sheet
+            </button>
+        </div>
+
+        <!-- Info Log -->
+        <div id="logBox" class="bg-slate-800/50 rounded-xl p-4 text-sm font-mono border border-slate-700 overflow-hidden">
+            <div class="text-slate-500 border-b border-slate-700 pb-2 mb-2 flex justify-between">
+                <span>System Logs</span>
+                <span id="currentTime">--:--:--</span>
+            </div>
+            <div id="logEntries" class="space-y-1 h-24 overflow-y-auto scrollbar-hide text-blue-300">
+                <div>> Sistem siap. Silakan klik Aktifkan.</div>
+            </div>
+        </div>
+    </main>
+
+    <canvas id="capturedCanvas"></canvas>
+
+    <div id="modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 p-6 rounded-2xl max-w-sm w-full text-center border border-slate-700">
+            <div id="modalIcon" class="mb-4 text-4xl">✅</div>
+            <h3 id="modalTitle" class="text-xl font-bold mb-2">Status</h3>
+            <p id="modalMsg" class="text-slate-400 mb-6"></p>
+            <button onclick="closeModal()" class="w-full bg-blue-600 py-2 rounded-lg font-bold">Mengerti</button>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = ""; // Ganti dengan URL Google Apps Script Anda
+
+        const video = document.getElementById('videoFeed');
+        const canvas = document.getElementById('capturedCanvas');
+        const resultImg = document.getElementById('resultImage');
+        const previewContainer = document.getElementById('previewContainer');
+        const logEntries = document.getElementById('logEntries');
+        const coordsDisplay = document.getElementById('coordsDisplay');
+        const gpsStatusDot = document.getElementById('gpsStatusDot');
+        const gpsStatusText = document.getElementById('gpsStatusText');
+        const startOverlay = document.getElementById('startOverlay');
+        const controlsGroup = document.getElementById('controlsGroup');
+
+        let currentCoords = { lat: 0, lng: 0, accuracy: 0 };
+        let stream = null;
+
+        function addLog(msg, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-emerald-400' : 'text-blue-300');
+            entry.textContent = `> ${msg}`;
+            logEntries.prepend(entry);
+            console.log(msg);
+        }
+
+        async function initApp() {
+            addLog('Meminta izin akses...');
+            
+            // Cek protokol
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                addLog('Peringatan: Gunakan HTTPS agar izin muncul.', 'error');
+                showModal('⚠️', 'Keamanan', 'Aplikasi memerlukan HTTPS untuk mengakses kamera dan lokasi.');
+            }
+
+            try {
+                // 1. Izin Kamera
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, 
+                    audio: false 
+                });
+                video.srcObject = stream;
+                addLog('Kamera berhasil diaktifkan.', 'success');
+
+                // 2. Izin Lokasi
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            updatePosition(pos);
+                            addLog('GPS berhasil dikunci.', 'success');
+                            // Start watching
+                            navigator.geolocation.watchPosition(updatePosition, handleGPSError, { enableHighAccuracy: true });
+                        },
+                        handleGPSError,
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                } else {
+                    addLog('Browser tidak mendukung GPS.', 'error');
+                }
+
+                // UI Update
+                startOverlay.classList.add('hidden');
+                controlsGroup.classList.remove('opacity-50', 'pointer-events-none');
+
+            } catch (err) {
+                addLog('Gagal akses: ' + err.name, 'error');
+                if (err.name === 'NotAllowedError') {
+                    showModal('❌', 'Izin Ditolak', 'Silakan aktifkan izin kamera/lokasi di pengaturan browser Anda.');
+                } else {
+                    showModal('❌', 'Error', err.message);
+                }
+            }
+        }
+
+        function updatePosition(pos) {
+            currentCoords = {
+                lat: pos.coords.latitude.toFixed(6),
+                lng: pos.coords.longitude.toFixed(6),
+                accuracy: pos.coords.accuracy.toFixed(1)
+            };
+            coordsDisplay.textContent = `${currentCoords.lat}, ${currentCoords.lng}`;
+            gpsStatusDot.className = 'status-dot bg-emerald-500';
+            gpsStatusText.textContent = `Akurasi: ${currentCoords.accuracy}m`;
+        }
+
+        function handleGPSError(err) {
+            addLog('GPS Error: ' + err.message, 'error');
+            gpsStatusDot.className = 'status-dot bg-red-500';
+            gpsStatusText.textContent = 'GPS Error/Mati';
+        }
+
+        // Tombol Start
+        document.getElementById('btnStartApp').onclick = initApp;
+
+        // Ambil Foto
+        document.getElementById('btnCapture').onclick = () => {
+            const width = video.videoWidth;
+            const height = video.videoHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, width, height);
+            
+            const padding = 20;
+            const fontSize = Math.max(14, Math.floor(width / 35));
+            ctx.font = `${fontSize}px monospace`;
+            
+            const timestamp = new Date().toLocaleString('id-ID');
+            const textLines = [
+                `LOKASI: ${currentCoords.lat}, ${currentCoords.lng}`,
+                `WAKTU : ${timestamp}`,
+                `AKURASI: ${currentCoords.accuracy}m`
+            ];
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            const boxHeight = (textLines.length * (fontSize + 8)) + 30;
+            ctx.fillRect(0, height - boxHeight, width, boxHeight);
+            
+            ctx.fillStyle = '#ffffff';
+            textLines.forEach((line, index) => {
+                ctx.fillText(line, padding, height - boxHeight + padding + (index * (fontSize + 8)) + fontSize);
+            });
+
+            resultImg.src = canvas.toDataURL('image/jpeg', 0.8);
+            previewContainer.classList.remove('hidden');
+            document.getElementById('btnCapture').classList.add('hidden');
+            document.getElementById('btnRetake').classList.remove('hidden');
+            document.getElementById('btnSend').classList.remove('hidden');
+        };
+
+        document.getElementById('btnRetake').onclick = () => {
+            previewContainer.classList.add('hidden');
+            document.getElementById('btnCapture').classList.remove('hidden');
+            document.getElementById('btnRetake').classList.add('hidden');
+            document.getElementById('btnSend').classList.add('hidden');
+        };
+
+        document.getElementById('btnSend').onclick = async () => {
+            if (!SCRIPT_URL) {
+                showModal('⚠️', 'Konfigurasi', 'Isi SCRIPT_URL di dalam kode JavaScript terlebih dahulu.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSend');
+            btn.disabled = true;
+            btn.innerHTML = 'Mengirim...';
+
+            const payload = {
+                timestamp: new Date().toLocaleString('id-ID'),
+                lat: currentCoords.lat,
+                lng: currentCoords.lng,
+                accuracy: currentCoords.accuracy,
+                note: "GPS Cam App Capture"
+            };
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                addLog('Data dikirim ke Sheets.', 'success');
+                showModal('✅', 'Terkirim!', 'Data lokasi telah dicatat di Google Sheets.');
+                document.getElementById('btnRetake').click();
+            } catch (err) {
+                addLog('Kirim gagal: ' + err.message, 'error');
+                showModal('❌', 'Gagal', 'Terjadi kesalahan saat mengirim data.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Kirim ke Sheet';
+            }
+        };
+
+        function showModal(icon, title, msg) {
+            document.getElementById('modalIcon').textContent = icon;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMsg').textContent = msg;
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modal').classList.remove('flex');
+        }
+
+        setInterval(() => {
+            document.getElementById('currentTime').textContent = new Date().toLocaleTimeString('id-ID');
+        }, 1000);
+    </script>
+</body>
+</html>
