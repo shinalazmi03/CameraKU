@@ -3,32 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPS Cam Pro - Auto Sync v3.3</title>
+    <title>GPS Cam Pro - Cinematic v4.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap');
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
         .video-container {
             position: relative;
             width: 100%;
-            max-width: 640px;
+            max-width: 500px;
+            aspect-ratio: 3/4;
             margin: 0 auto;
-            border-radius: 1.5rem;
+            border-radius: 2rem;
             overflow: hidden;
             background: #000;
-            min-height: 350px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #334155;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        #videoFeed { width: 100%; height: auto; display: block; }
+        
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .mirror { transform: scaleX(-1); }
-        #capturedCanvas { display: none; }
-        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+
+        /* Watermark Overlay yang Meniru Hasil Akhir */
+        .watermark-live {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            pointer-events: none;
+        }
+
         .overlay-step {
             position: absolute;
             inset: 0;
-            background: rgba(15, 23, 42, 0.98);
-            z-index: 50;
+            background: #0f172a;
+            z-index: 100;
             padding: 2rem;
             display: flex;
             flex-direction: column;
@@ -36,126 +54,130 @@
             justify-content: center;
             text-align: center;
         }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:active { transform: scale(0.95); opacity: 0.9; }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        #capturedCanvas { display: none; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center p-4 font-sans">
+<body class="bg-[#020617] text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <header class="w-full max-w-2xl mb-6 text-center">
-        <h1 class="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent italic tracking-tight">
+    <header class="mb-6 text-center">
+        <h1 class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent italic">
             GPS CAM PRO
         </h1>
-        <p class="text-slate-500 text-[11px] mt-1 uppercase tracking-widest font-bold">Cloud & Local Storage Sync v3.3</p>
+        <div class="flex items-center justify-center gap-2 mt-1">
+            <span id="gpsDot" class="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+            <span id="gpsText" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sinyal GPS Terputus</span>
+        </div>
     </header>
 
-    <main class="w-full max-w-2xl space-y-5">
-        <div class="video-container shadow-2xl">
+    <main class="w-full max-w-lg space-y-6">
+        <div class="video-container group">
             
-            <!-- STEP 1: Input Identitas -->
+            <!-- STEP 1: Login Plat -->
             <div id="stepLogin" class="overlay-step">
-                <div class="mb-6 p-4 bg-emerald-500/10 rounded-full text-emerald-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <div class="w-20 h-20 mb-6 bg-blue-500/10 rounded-3xl flex items-center justify-center text-blue-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 </div>
-                <h2 class="text-2xl font-bold mb-2 text-white">Input Nomor Plat</h2>
-                <p class="text-slate-400 text-sm mb-8">Masukkan nomor plat kendaraan Anda</p>
-                <input type="text" id="inputPlat" placeholder="B 1234 ABC" class="w-full max-w-xs bg-slate-800 border-2 border-slate-700 rounded-2xl px-6 py-4 text-center text-3xl font-black uppercase tracking-widest focus:outline-none focus:border-emerald-500 mb-8 transition-colors text-white">
-                <button id="btnProceed" class="w-full max-w-xs bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all text-white uppercase tracking-wider">Masuk Sistem</button>
+                <h2 class="text-2xl font-extrabold mb-2">Data Kendaraan</h2>
+                <p class="text-slate-400 text-sm mb-8">Masukkan nomor plat untuk identitas foto</p>
+                
+                <div class="w-full max-w-xs relative mb-8">
+                    <input type="text" id="inputPlat" placeholder="B 1234 ABC" 
+                           class="w-full bg-slate-900/50 border-2 border-slate-700 rounded-2xl px-6 py-5 text-center text-3xl font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all text-white placeholder:text-slate-700 shadow-2xl">
+                </div>
+                
+                <button id="btnProceed" class="btn-primary w-full max-w-xs py-5 rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 uppercase tracking-wider">
+                    Buka Kamera
+                </button>
             </div>
 
-            <!-- STEP 2: Izin Perangkat -->
-            <div id="stepIzin" class="overlay-step hidden">
-                <div class="mb-6 p-4 bg-blue-500/10 rounded-full text-blue-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                </div>
-                <h2 class="text-2xl font-bold mb-2 text-white">Izin Diperlukan</h2>
-                <p class="text-slate-400 text-sm mb-8">Aplikasi membutuhkan izin Kamera & GPS</p>
-                <button id="btnStartApp" class="bg-blue-600 hover:bg-blue-500 px-16 py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all text-white uppercase tracking-wider">Izinkan Sekarang</button>
-            </div>
-
+            <!-- Preview Kamera -->
             <video id="videoFeed" autoplay playsinline></video>
-            <div id="previewContainer" class="absolute inset-0 hidden bg-black">
+            
+            <!-- Preview Hasil (Setelah Foto) -->
+            <div id="previewContainer" class="absolute inset-0 hidden bg-black z-20">
                 <img id="resultImage" class="w-full h-full object-contain" src="" alt="Captured">
             </div>
             
-            <!-- Info Watermark Layar -->
-            <div class="absolute bottom-4 left-4 right-4 bg-slate-900/85 backdrop-blur-md p-3 rounded-xl text-[11px] border border-white/10 shadow-2xl">
-                <div class="flex items-center gap-2 mb-2">
-                    <span id="gpsStatusDot" class="status-dot bg-red-500"></span>
-                    <span id="gpsStatusText" class="uppercase font-bold text-white tracking-tighter">GPS: MENCARI...</span>
-                    <span class="ml-auto bg-emerald-500 text-slate-900 px-2 py-0.5 rounded font-black tracking-widest" id="displayPlat">--</span>
+            <!-- Watermark Real-time (Tampilan Langsung di Kamera) -->
+            <div id="liveWatermark" class="watermark-live z-10 transition-opacity duration-500">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="h-8 w-1 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></div>
+                    <div class="bg-emerald-500 text-slate-950 px-2.5 py-0.5 rounded-md font-black text-[12px] tracking-widest" id="displayPlat">--</div>
                 </div>
-                <div class="flex items-start gap-2">
-                    <div id="addressDisplay" class="text-slate-300 leading-snug font-medium italic flex-1">Menghubungkan ke sensor lokasi...</div>
-                    <button id="btnRefreshAddr" class="p-1 bg-slate-700 hover:bg-slate-600 rounded transition-colors text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                    </button>
+                <div class="space-y-0.5">
+                    <p id="liveAddr" class="text-white text-[13px] font-bold leading-tight drop-shadow-lg">Mencari lokasi...</p>
+                    <p id="liveTime" class="text-slate-300 text-[11px] font-medium mono">--:--:--</p>
+                    <p id="liveCoords" class="text-slate-400 text-[9px] mono tracking-widest uppercase">GPS: 0.0000, 0.0000</p>
                 </div>
             </div>
         </div>
 
-        <!-- Tombol Aksi -->
-        <div id="controlsGroup" class="flex flex-wrap justify-center gap-4 opacity-30 pointer-events-none transition-all duration-700">
-            <button id="btnCapture" class="bg-blue-600 hover:bg-blue-700 px-12 py-5 rounded-full font-black flex items-center gap-3 shadow-xl active:scale-95 transform transition-all text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-                FOTO SEKARANG
+        <!-- Kontrol Utama -->
+        <div id="controls" class="flex items-center justify-center gap-6 opacity-0 translate-y-10 transition-all duration-700">
+            <button id="btnCapture" class="h-20 w-20 rounded-full bg-white border-[6px] border-slate-800 shadow-2xl flex items-center justify-center active:scale-90 transition-transform">
+                <div class="h-14 w-14 rounded-full bg-slate-900 flex items-center justify-center">
+                    <div class="h-6 w-6 rounded-full bg-white"></div>
+                </div>
             </button>
-            <button id="btnRetake" class="hidden bg-slate-700 hover:bg-slate-600 px-10 py-5 rounded-full font-bold shadow-lg text-white">ULANGI</button>
-            <button id="btnSend" class="hidden bg-emerald-600 hover:bg-emerald-700 px-10 py-5 rounded-full font-black flex items-center gap-3 shadow-xl animate-pulse text-white">
-                SIMPAN & DOWNLOAD
-            </button>
-        </div>
-
-        <!-- System Logs -->
-        <div class="bg-slate-800/50 rounded-2xl p-4 text-[11px] font-mono border border-slate-700/50 shadow-inner">
-            <div id="logEntries" class="space-y-1 h-20 overflow-y-auto text-blue-400 scroll-smooth">
-                <div>> Sistem standby. Masukkan nomor plat kendaraan...</div>
+            
+            <div id="postCaptureActions" class="hidden flex items-center gap-4">
+                <button id="btnRetake" class="bg-slate-800 hover:bg-slate-700 p-5 rounded-3xl text-white shadow-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+                <button id="btnSend" class="btn-success px-8 py-5 rounded-3xl font-black text-white shadow-xl shadow-emerald-500/20 flex items-center gap-3 active:scale-95 transition-all">
+                    <span>SIMPAN & SYNC</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
             </div>
         </div>
     </main>
 
     <canvas id="capturedCanvas"></canvas>
 
-    <div id="modal" class="fixed inset-0 bg-black/95 hidden items-center justify-center p-6 z-[100]">
-        <div class="bg-slate-800 p-10 rounded-[2.5rem] max-w-sm w-full text-center border border-slate-700 shadow-2xl">
-            <div id="modalIcon" class="mb-6 text-7xl">✅</div>
-            <h3 id="modalTitle" class="text-2xl font-black mb-3 text-white">Berhasil!</h3>
-            <p id="modalMsg" class="text-slate-400 mb-10 text-sm leading-relaxed"></p>
-            <button onclick="closeModal()" class="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-all text-white">TUTUP</button>
+    <!-- Modal Status Minimalis -->
+    <div id="modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-6 z-[200]">
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl">
+            <div id="modalIcon" class="mb-4 text-5xl">✅</div>
+            <h3 id="modalTitle" class="text-xl font-bold mb-2">Berhasil</h3>
+            <p id="modalMsg" class="text-slate-500 text-sm mb-8 leading-relaxed"></p>
+            <button onclick="closeModal()" class="w-full bg-slate-800 hover:bg-slate-700 py-4 rounded-2xl font-bold transition-all text-white">Lanjutkan</button>
         </div>
     </div>
 
     <script>
-        // URL SCRIPT TERBARU ANDA
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywUWR4cdbbccCXETV026CvOIPYO4YmA_k32l9WBUotQjzIDpn2LcwP0VjbC4BnWR8g/exec"; 
 
         const video = document.getElementById('videoFeed');
         const canvas = document.getElementById('capturedCanvas');
         const resultImg = document.getElementById('resultImage');
         const previewContainer = document.getElementById('previewContainer');
-        const logEntries = document.getElementById('logEntries');
-        const addressDisplay = document.getElementById('addressDisplay');
-        const gpsStatusDot = document.getElementById('gpsStatusDot');
-        const gpsStatusText = document.getElementById('gpsStatusText');
-        const stepLogin = document.getElementById('stepLogin');
-        const stepIzin = document.getElementById('stepIzin');
-        const controlsGroup = document.getElementById('controlsGroup');
-
+        const controls = document.getElementById('controls');
+        const liveWatermark = document.getElementById('liveWatermark');
+        
         let currentCoords = { lat: 0, lng: 0, accuracy: 0 };
-        let lastFetchCoords = { lat: 0, lng: 0 };
         let fullAddress = "";
         let nomorPlat = "";
         let stream = null;
-        let isFetchingAddress = false;
 
-        function addLog(msg, type = 'info') {
-            const entry = document.createElement('div');
-            const colors = { error: 'text-red-400', success: 'text-emerald-400', warning: 'text-yellow-400', info: 'text-blue-300' };
-            entry.className = colors[type] || colors.info;
-            entry.textContent = `> ${msg}`;
-            logEntries.prepend(entry);
-        }
-
-        async function startSensors() {
-            addLog('Mencoba aktivasi kamera & GPS otomatis...');
+        // --- INISIALISASI ---
+        document.getElementById('btnProceed').onclick = async () => {
+            const val = document.getElementById('inputPlat').value.trim();
+            if (!val) return;
+            nomorPlat = val.toUpperCase();
+            document.getElementById('displayPlat').textContent = nomorPlat;
+            
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: { ideal: 'environment' } }, 
@@ -165,158 +187,129 @@
                 if (stream.getVideoTracks()[0].getSettings().facingMode === 'user') video.classList.add('mirror');
                 
                 initGPS();
-                stepLogin.style.display = 'none';
-                stepIzin.classList.add('hidden');
-                controlsGroup.classList.remove('opacity-30', 'pointer-events-none');
-                addLog('Sistem aktif.', 'success');
-                return true;
+                document.getElementById('stepLogin').style.display = 'none';
+                controls.classList.remove('opacity-0', 'translate-y-10');
             } catch (err) {
-                addLog('Izin diperlukan secara manual.', 'warning');
-                return false;
+                alert("Harap izinkan kamera untuk menggunakan aplikasi ini.");
             }
-        }
-
-        document.getElementById('btnProceed').onclick = async () => {
-            const val = document.getElementById('inputPlat').value.trim();
-            if (!val) return showModal('⚠️', 'Data Kosong', 'Harap masukkan nomor plat.');
-            nomorPlat = val.toUpperCase();
-            document.getElementById('displayPlat').textContent = nomorPlat;
-            
-            const ok = await startSensors();
-            if (!ok) {
-                stepLogin.style.display = 'none';
-                stepIzin.classList.remove('hidden');
-            }
-        };
-
-        document.getElementById('btnStartApp').onclick = async () => {
-            if (await startSensors()) addLog('Akses diizinkan.', 'success');
-            else showModal('❌', 'Gagal', 'Harap izinkan kamera pada browser Anda.');
         };
 
         function initGPS() {
-            if (!navigator.geolocation) return addLog('GPS tidak didukung.', 'error');
-            navigator.geolocation.watchPosition(async (pos) => {
+            navigator.geolocation.watchPosition((pos) => {
                 currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy.toFixed(1) };
-                gpsStatusDot.className = 'status-dot bg-emerald-500 shadow-[0_0_10px_#10b981]';
-                gpsStatusText.textContent = `GPS: OK (${currentCoords.accuracy}m)`;
                 
-                // Fetch alamat jika berpindah > 15m
-                const dist = Math.sqrt(Math.pow(currentCoords.lat - lastFetchCoords.lat, 2) + Math.pow(currentCoords.lng - lastFetchCoords.lng, 2));
-                if (dist > 0.00015 || !fullAddress) {
-                    fetchAddress(currentCoords.lat, currentCoords.lng);
-                }
+                // Update Subtle Status
+                const dot = document.getElementById('gpsDot');
+                const txt = document.getElementById('gpsText');
+                dot.className = 'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';
+                txt.textContent = `GPS Aktif (${currentCoords.accuracy}m)`;
+                txt.classList.add('text-emerald-500');
+
+                document.getElementById('liveCoords').textContent = `GPS: ${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}`;
+                fetchAddress(currentCoords.lat, currentCoords.lng);
             }, null, { enableHighAccuracy: true });
         }
 
-        async function fetchAddress(lat, lng, force = false) {
-            if (isFetchingAddress && !force) return;
-            isFetchingAddress = true;
-            addressDisplay.classList.add('animate-pulse');
+        async function fetchAddress(lat, lng) {
             try {
-                await new Promise(r => setTimeout(r, 900));
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=id`);
                 const data = await res.json();
-                
                 if (data && data.address) {
                     const a = data.address;
                     // Prioritas: Jalan -> Desa -> Kabupaten -> Provinsi
                     const road = a.road || a.pedestrian || a.path || "";
                     const village = a.village || a.suburb || a.hamlet || a.town || a.neighbourhood || "";
-                    const regency = a.city || a.regency || a.county || a.municipality || "";
+                    const regency = a.city || a.regency || a.county || "";
                     const province = a.state || "";
 
-                    let parts = [];
-                    if (road) parts.push(road);
-                    if (village) parts.push(village);
-                    if (regency) parts.push(regency);
-                    if (province) parts.push(province);
-
+                    const parts = [road, village, regency, province].filter(Boolean);
                     fullAddress = parts.join(', ');
-                    addressDisplay.textContent = fullAddress || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                    lastFetchCoords = { lat, lng };
+                    document.getElementById('liveAddr').textContent = fullAddress || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                 }
             } catch (e) {
                 fullAddress = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                addressDisplay.textContent = fullAddress + " (Layanan alamat sibuk)";
-            } finally {
-                isFetchingAddress = false;
-                addressDisplay.classList.remove('animate-pulse');
+                document.getElementById('liveAddr').textContent = fullAddress;
             }
         }
 
-        document.getElementById('btnRefreshAddr').onclick = (e) => {
-            e.stopPropagation();
-            fetchAddress(currentCoords.lat, currentCoords.lng, true);
-        };
+        // Timer Jam Real-time di Watermark
+        setInterval(() => {
+            document.getElementById('liveTime').textContent = new Date().toLocaleString('id-ID', { 
+                dateStyle: 'medium', 
+                timeStyle: 'medium' 
+            });
+        }, 1000);
 
+        // --- PROSES FOTO ---
         document.getElementById('btnCapture').onclick = () => {
             const w = video.videoWidth;
             const h = video.videoHeight;
             canvas.width = w;
             canvas.height = h;
             const ctx = canvas.getContext('2d');
+            
             if (video.classList.contains('mirror')) { ctx.translate(w, 0); ctx.scale(-1, 1); }
             ctx.drawImage(video, 0, 0, w, h);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             
-            const fontSize = Math.max(18, Math.floor(w / 32));
-            ctx.font = `bold ${fontSize}px sans-serif`;
-            const ts = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
+            // Draw Watermark on Canvas
+            const fontSize = Math.max(20, Math.floor(w / 30));
+            ctx.font = `bold ${fontSize}px "Jakarta Sans", sans-serif`;
             
+            const ts = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
             const lines = [
-                `PLAT   : ${nomorPlat}`,
-                `LOKASI : ${fullAddress}`,
-                `WAKTU  : ${ts}`,
-                `GPS    : ${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}`
+                `PLAT : ${nomorPlat}`,
+                `LOC  : ${fullAddress}`,
+                `TS   : ${ts}`,
+                `GPS  : ${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}`
             ];
 
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-            const padding = 35;
-            const boxH = (lines.length * (fontSize + 14)) + (padding * 1.5);
-            ctx.fillRect(0, h - boxH, w, boxH);
-            ctx.fillStyle = '#10b981';
-            ctx.fillRect(0, h - boxH, 12, boxH);
-            ctx.fillStyle = '#ffffff';
-            lines.forEach((l, i) => ctx.fillText(l, padding, h - boxH + padding + (i * (fontSize + 14)) + fontSize/2));
+            const padding = 40;
+            const boxH = (lines.length * (fontSize + 16)) + (padding * 2);
             
-            resultImg.src = canvas.toDataURL('image/jpeg', 0.92);
+            // Gradient Background
+            const grad = ctx.createLinearGradient(0, h - boxH, 0, h);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(0.3, 'rgba(0,0,0,0.8)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.95)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, h - boxH, w, boxH);
+            
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(0, h - boxH + padding, 12, boxH - (padding * 2));
+            
+            ctx.fillStyle = '#ffffff';
+            lines.forEach((l, i) => ctx.fillText(l, padding + 10, h - boxH + padding + (i * (fontSize + 16)) + fontSize));
+
+            resultImg.src = canvas.toDataURL('image/jpeg', 0.95);
             previewContainer.classList.remove('hidden');
+            liveWatermark.classList.add('opacity-0');
+            
             document.getElementById('btnCapture').classList.add('hidden');
-            document.getElementById('btnRetake').classList.remove('hidden');
-            document.getElementById('btnSend').classList.remove('hidden');
-            addLog('Foto diproses.');
+            document.getElementById('postCaptureActions').classList.remove('hidden');
         };
 
         document.getElementById('btnRetake').onclick = () => {
             previewContainer.classList.add('hidden');
+            liveWatermark.classList.remove('opacity-0');
             document.getElementById('btnCapture').classList.remove('hidden');
-            document.getElementById('btnRetake').classList.add('hidden');
-            document.getElementById('btnSend').classList.add('hidden');
+            document.getElementById('postCaptureActions').classList.add('hidden');
         };
 
-        function downloadLocally() {
-            const link = document.createElement('a');
-            const now = new Date();
-            const ts = now.toISOString().slice(0,10) + "_" + now.getHours() + now.getMinutes();
-            link.download = `${nomorPlat}_${ts}.jpg`;
-            link.href = resultImg.src;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            addLog('Foto disimpan ke galeri HP.', 'success');
-        }
-
+        // --- SIMPAN ---
         document.getElementById('btnSend').onclick = async () => {
             const btn = document.getElementById('btnSend');
             btn.disabled = true;
-            btn.innerHTML = '<span class="animate-pulse">Sinkronisasi...</span>';
+            btn.innerHTML = 'MENYIMPAN...';
             
-            // 1. Simpan Lokal
-            downloadLocally();
+            // Download Lokal
+            const link = document.createElement('a');
+            link.download = `${nomorPlat}_${new Date().getTime()}.jpg`;
+            link.href = resultImg.src;
+            link.click();
             
-            // 2. Kirim Cloud
-            const imgBase64 = resultImg.src.split(',')[1];
+            // Upload Cloud
+            const imgBase = resultImg.src.split(',')[1];
             try {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
@@ -326,17 +319,17 @@
                         address: fullAddress,
                         lat: currentCoords.lat,
                         lng: currentCoords.lng,
-                        image: imgBase64,
+                        image: imgBase,
                         timestamp: new Date().toLocaleString('id-ID').replace(/\//g, '-')
                     })
                 });
-                showModal('✅', 'Tersimpan!', `Foto kendaraan ${nomorPlat} telah berhasil disimpan di HP dan Google Cloud.`);
+                showModal('✅', 'Berhasil Disimpan', `Foto ${nomorPlat} telah tersimpan di Galeri & Google Drive.`);
                 document.getElementById('btnRetake').click();
             } catch (err) {
-                showModal('⚠️', 'Hanya Tersimpan di HP', 'Data gagal dikirim ke Google Drive. Cek internet Anda.');
+                showModal('⚠️', 'Hanya Simpan Lokal', 'Gagal kirim ke Drive, namun foto sudah ada di galeri HP Anda.');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'SIMPAN & DOWNLOAD';
+                btn.innerHTML = 'SIMPAN & SYNC';
             }
         };
 
@@ -352,6 +345,11 @@
             document.getElementById('modal').classList.add('hidden');
             document.getElementById('modal').classList.remove('flex');
         }
+
+        document.getElementById('btnRefreshAddr').onclick = (e) => {
+            e.stopPropagation();
+            fetchAddress(currentCoords.lat, currentCoords.lng);
+        };
     </script>
 </body>
 </html>
