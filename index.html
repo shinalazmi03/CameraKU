@@ -14,122 +14,94 @@
             border-radius: 1rem;
             overflow: hidden;
             background: #000;
-            min-height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         #videoFeed {
             width: 100%;
             height: auto;
-            display: block;
-        }
-        .mirror {
-            transform: scaleX(-1);
+            transform: scaleX(-1); /* Mirror view for selfie-like experience */
         }
         #capturedCanvas {
             display: none;
         }
         .status-dot {
-            height: 8px;
-            width: 8px;
+            height: 10px;
+            width: 10px;
             border-radius: 50%;
             display: inline-block;
-        }
-        #startOverlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.98);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 40;
-            text-align: center;
-            padding: 20px;
         }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-4">
 
-    <header class="w-full max-w-2xl mb-4 text-center">
-        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            GPS Cam Watermark v2.1
+    <header class="w-full max-w-2xl mb-6 text-center">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            GPS Camera Watermark
         </h1>
+        <p class="text-slate-400 text-sm mt-2">Ambil foto dengan lokasi otomatis & simpan ke Google Sheets</p>
     </header>
 
-    <main class="w-full max-w-2xl space-y-4">
+    <main class="w-full max-w-2xl space-y-6">
+        <!-- Kamera / Preview Section -->
         <div class="video-container shadow-2xl border-2 border-slate-700">
-            <!-- Layar Awal -->
-            <div id="startOverlay">
-                <div class="mb-4 text-blue-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                </div>
-                <h2 class="text-lg font-bold mb-2">Izin Kamera & Lokasi</h2>
-                <p class="text-slate-400 text-xs mb-6 px-4">Pastikan tidak ada aplikasi lain yang sedang menggunakan kamera Anda.</p>
-                <button id="btnStartApp" class="bg-blue-600 hover:bg-blue-500 px-10 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-95">
-                    Mulai Sekarang
-                </button>
-            </div>
-
             <video id="videoFeed" autoplay playsinline></video>
             <div id="previewContainer" class="absolute inset-0 hidden bg-black">
-                <img id="resultImage" class="w-full h-full object-contain" src="" alt="Hasil">
+                <img id="resultImage" class="w-full h-full object-contain" src="" alt="Captured">
             </div>
             
-            <!-- Overlay Info -->
-            <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-sm p-2 rounded-lg text-[10px] space-y-1 pointer-events-none">
+            <!-- Overlay Status -->
+            <div class="absolute top-4 left-4 bg-black/50 backdrop-blur-md p-2 rounded-lg text-xs space-y-1">
                 <div class="flex items-center gap-2">
                     <span id="gpsStatusDot" class="status-dot bg-red-500"></span>
-                    <span id="gpsStatusText" class="uppercase">Mencari GPS...</span>
+                    <span id="gpsStatusText">Mencari GPS...</span>
                 </div>
                 <div id="coordsDisplay" class="font-mono text-emerald-400">0.0000, 0.0000</div>
             </div>
         </div>
 
-        <!-- Tombol Kontrol -->
-        <div id="controlsGroup" class="flex flex-wrap justify-center gap-3 opacity-30 pointer-events-none transition-opacity">
-            <button id="btnCapture" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-                Foto
+        <!-- Kontrol -->
+        <div class="flex flex-wrap justify-center gap-4">
+            <button id="btnCapture" class="bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all px-8 py-3 rounded-full font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                Ambil Foto
             </button>
             
-            <button id="btnRetake" class="hidden bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-full font-bold active:scale-95">
-                Ulang
+            <button id="btnRetake" class="hidden bg-slate-700 hover:bg-slate-600 px-8 py-3 rounded-full font-semibold">
+                Ulangi
             </button>
 
-            <button id="btnSend" class="hidden bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Kirim
+            <button id="btnSend" class="hidden bg-emerald-600 hover:bg-emerald-700 px-8 py-3 rounded-full font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Kirim ke Sheet
             </button>
         </div>
 
-        <!-- System Logs -->
-        <div class="bg-slate-800/80 rounded-xl p-3 text-[10px] font-mono border border-slate-700">
-            <div class="flex justify-between text-slate-500 mb-1 border-b border-slate-700 pb-1">
-                <span>SYSTEM LOGS</span>
-                <span id="logClock">--:--</span>
+        <!-- Info Log -->
+        <div id="logBox" class="bg-slate-800/50 rounded-xl p-4 text-sm font-mono border border-slate-700 overflow-hidden">
+            <div class="text-slate-500 border-b border-slate-700 pb-2 mb-2 flex justify-between">
+                <span>System Logs</span>
+                <span id="currentTime">--:--:--</span>
             </div>
-            <div id="logEntries" class="space-y-0.5 h-20 overflow-y-auto text-blue-400 scrollbar-hide">
-                <div>> Menunggu interaksi pengguna...</div>
+            <div id="logEntries" class="space-y-1 h-24 overflow-y-auto scrollbar-hide text-blue-300">
+                <div>> Menunggu izin kamera & lokasi...</div>
             </div>
         </div>
     </main>
 
+    <!-- Hidden Canvas untuk processing -->
     <canvas id="capturedCanvas"></canvas>
 
-    <!-- Custom Modal -->
-    <div id="modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-6 z-50">
-        <div class="bg-slate-800 p-6 rounded-2xl max-w-sm w-full text-center border border-slate-700 shadow-2xl">
-            <div id="modalIcon" class="mb-4 text-5xl">❌</div>
-            <h3 id="modalTitle" class="text-lg font-bold mb-2">Error</h3>
-            <p id="modalMsg" class="text-slate-400 mb-6 text-sm leading-relaxed"></p>
-            <button onclick="closeModal()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold transition-colors">Tutup</button>
+    <!-- Modal Notifikasi Custom -->
+    <div id="modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 p-6 rounded-2xl max-w-sm w-full text-center border border-slate-700">
+            <div id="modalIcon" class="mb-4 text-4xl">✅</div>
+            <h3 id="modalTitle" class="text-xl font-bold mb-2">Berhasil!</h3>
+            <p id="modalMsg" class="text-slate-400 mb-6">Data telah dikirim ke Google Sheets.</p>
+            <button onclick="closeModal()" class="w-full bg-blue-600 py-2 rounded-lg font-bold">Tutup</button>
         </div>
     </div>
 
     <script>
-        // Masukkan URL Google Apps Script Anda di sini
+        // CONFIGURATION: Ganti URL ini dengan URL Web App dari Google Apps Script Anda
         const SCRIPT_URL = https://script.google.com/macros/s/AKfycbzH1PISFM2wq5o1ksN1XgqtyYrY4_yEoVeeiq6SUfi2b4wb3w0Kh9YEq6gGUhvTaaP6/exec; 
 
         const video = document.getElementById('videoFeed');
@@ -140,103 +112,39 @@
         const coordsDisplay = document.getElementById('coordsDisplay');
         const gpsStatusDot = document.getElementById('gpsStatusDot');
         const gpsStatusText = document.getElementById('gpsStatusText');
-        const startOverlay = document.getElementById('startOverlay');
-        const controlsGroup = document.getElementById('controlsGroup');
 
-        let currentCoords = { lat: "0.0000", lng: "0.0000", accuracy: "0" };
+        let currentCoords = { lat: 0, lng: 0, accuracy: 0 };
         let stream = null;
 
         function addLog(msg, type = 'info') {
             const entry = document.createElement('div');
-            const colors = {
-                error: 'text-red-400',
-                success: 'text-emerald-400',
-                warning: 'text-yellow-400',
-                info: 'text-blue-300'
-            };
-            entry.className = colors[type] || colors.info;
+            entry.className = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-emerald-400' : 'text-blue-300');
             entry.textContent = `> ${msg}`;
             logEntries.prepend(entry);
         }
 
-        async function initApp() {
-            addLog('Memulai inisialisasi perangkat...');
-            
+        // 1. Initialize Camera
+        async function initCamera() {
             try {
-                // Cek ketersediaan mediaDevices
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('Browser tidak mendukung akses kamera/media.');
-                }
-
-                // Ambil daftar perangkat untuk debugging
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                addLog(`Ditemukan ${videoDevices.length} perangkat video.`);
-
-                if (videoDevices.length === 0) {
-                    throw new Error('Tidak ada kamera yang terdeteksi di perangkat ini.');
-                }
-
-                // Coba akses kamera dengan urutan prioritas
-                let constraints = [
-                    { video: { facingMode: { ideal: 'environment' } }, audio: false }, // Belakang
-                    { video: { facingMode: 'user' }, audio: false },                 // Depan
-                    { video: true, audio: false }                                    // Apapun
-                ];
-
-                let lastError = null;
-                for (let constraint of constraints) {
-                    try {
-                        addLog('Mencoba akses dengan profil: ' + (constraint.video.facingMode ? (typeof constraint.video.facingMode === 'string' ? constraint.video.facingMode : constraint.video.facingMode.ideal) : 'default'));
-                        stream = await navigator.mediaDevices.getUserMedia(constraint);
-                        if (stream) break;
-                    } catch (e) {
-                        lastError = e;
-                        addLog('Gagal: ' + e.name, 'warning');
-                    }
-                }
-
-                if (!stream) throw lastError;
-
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, 
+                    audio: false 
+                });
                 video.srcObject = stream;
-                
-                // Deteksi jika kamera yang aktif adalah kamera depan (mirror)
-                const track = stream.getVideoTracks()[0];
-                const settings = track.getSettings();
-                if (settings.facingMode === 'user' || !settings.facingMode) {
-                    video.classList.add('mirror');
-                    addLog('Mode kamera depan (mirror) diaktifkan.');
-                }
-
-                addLog('Kamera berhasil dihubungkan.', 'success');
-
-                // Inisialisasi GPS
-                initGPS();
-
-                startOverlay.classList.add('hidden');
-                controlsGroup.classList.remove('opacity-30', 'pointer-events-none');
-
+                addLog('Kamera aktif.');
             } catch (err) {
-                console.error(err);
-                addLog('Fatal Error: ' + err.name, 'error');
-                
-                let pesanUser = "Gagal mengakses kamera. ";
-                if (err.name === 'NotFoundError') pesanUser += "Kamera tidak ditemukan. Pastikan kabel kamera terpasang atau tidak rusak.";
-                else if (err.name === 'NotAllowedError') pesanUser += "Izin ditolak. Silakan cek pengaturan izin kamera di browser Anda.";
-                else if (err.name === 'NotReadableError') pesanUser += "Kamera sedang digunakan oleh aplikasi lain (Zoom/Meet/Kamera lain). Tutup aplikasi tersebut.";
-                else pesanUser += err.message;
-
-                showModal('❌', 'Kamera Bermasalah', pesanUser);
+                addLog('Gagal akses kamera: ' + err.message, 'error');
+                showModal('❌', 'Error Kamera', 'Pastikan Anda memberikan izin kamera.');
             }
         }
 
-        function initGPS() {
+        // 2. Watch Location
+        function watchLocation() {
             if (!navigator.geolocation) {
-                addLog('GPS tidak didukung browser ini.', 'error');
+                addLog('Geolocation tidak didukung browser ini.', 'error');
                 return;
             }
 
-            addLog('Meminta data lokasi...');
             navigator.geolocation.watchPosition(
                 (pos) => {
                     currentCoords = {
@@ -245,20 +153,19 @@
                         accuracy: pos.coords.accuracy.toFixed(1)
                     };
                     coordsDisplay.textContent = `${currentCoords.lat}, ${currentCoords.lng}`;
-                    gpsStatusDot.className = 'status-dot bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
+                    gpsStatusDot.className = 'status-dot bg-emerald-500';
                     gpsStatusText.textContent = `Akurasi: ${currentCoords.accuracy}m`;
                 },
                 (err) => {
                     addLog('GPS Error: ' + err.message, 'error');
                     gpsStatusDot.className = 'status-dot bg-red-500';
-                    gpsStatusText.textContent = 'GPS OFF';
+                    gpsStatusText.textContent = 'GPS Mati/Error';
                 },
-                { enableHighAccuracy: true, timeout: 15000 }
+                { enableHighAccuracy: true }
             );
         }
 
-        document.getElementById('btnStartApp').onclick = initApp;
-
+        // 3. Capture and Watermark
         document.getElementById('btnCapture').onclick = () => {
             const width = video.videoWidth;
             const height = video.videoHeight;
@@ -267,90 +174,103 @@
             
             const ctx = canvas.getContext('2d');
             
-            if (video.classList.contains('mirror')) {
-                ctx.translate(width, 0);
-                ctx.scale(-1, 1);
-            }
-            
+            // Draw Video Frame (Mirror if selfie, but here we assume environment)
             ctx.drawImage(video, 0, 0, width, height);
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
             
-            // Watermark Styling
+            // Add Watermark Overlay
+            const padding = 20;
             const fontSize = Math.max(16, Math.floor(width / 30));
-            ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+            ctx.font = `${fontSize}px monospace`;
             
-            const lines = [
-                `LOC: ${currentCoords.lat}, ${currentCoords.lng}`,
-                `TS : ${new Date().toLocaleString('id-ID')}`,
-                `ACC: ${currentCoords.accuracy}m`
+            const timestamp = new Date().toLocaleString('id-ID');
+            const textLines = [
+                `LOKASI: ${currentCoords.lat}, ${currentCoords.lng}`,
+                `WAKTU : ${timestamp}`,
+                `AKURASI: ${currentCoords.accuracy}m`
             ];
 
-            // Background text
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            const h = (lines.length * (fontSize + 10)) + 40;
-            ctx.fillRect(0, height - h, width, h);
+            // Background for text visibility
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            const boxHeight = (textLines.length * (fontSize + 10)) + 20;
+            ctx.fillRect(0, height - boxHeight, width, boxHeight);
             
-            // Border Line
-            ctx.fillStyle = '#10b981';
-            ctx.fillRect(0, height - h, 5, h);
-            
-            // Text Shadow & Color
+            // Draw Text
             ctx.fillStyle = '#ffffff';
-            lines.forEach((line, i) => {
-                ctx.fillText(line, 25, height - h + 30 + (i * (fontSize + 10)));
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 4;
+            textLines.forEach((line, index) => {
+                ctx.fillText(line, padding, height - boxHeight + padding + (index * (fontSize + 10)) + fontSize);
             });
 
-            resultImg.src = canvas.toDataURL('image/jpeg', 0.85);
+            // Show Result
+            resultImg.src = canvas.toDataURL('image/jpeg', 0.8);
             previewContainer.classList.remove('hidden');
             document.getElementById('btnCapture').classList.add('hidden');
             document.getElementById('btnRetake').classList.remove('hidden');
             document.getElementById('btnSend').classList.remove('hidden');
-            addLog('Foto berhasil ditangkap.');
+            addLog('Foto berhasil diambil & di-watermark.');
         };
 
+        // 4. Retake
         document.getElementById('btnRetake').onclick = () => {
             previewContainer.classList.add('hidden');
             document.getElementById('btnCapture').classList.remove('hidden');
             document.getElementById('btnRetake').classList.add('hidden');
             document.getElementById('btnSend').classList.add('hidden');
+            addLog('Siap mengambil foto baru.');
         };
 
+        // 5. Send to Google Sheets
         document.getElementById('btnSend').onclick = async () => {
             if (!SCRIPT_URL) {
-                showModal('⚠️', 'Konfigurasi', 'Ganti SCRIPT_URL di dalam kode dengan URL Google Apps Script Anda.');
+                showModal('⚠️', 'Konfigurasi Diperlukan', 'Anda perlu mengatur URL Google Apps Script terlebih dahulu di bagian kode JS.');
                 return;
             }
 
             const btn = document.getElementById('btnSend');
+            const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = 'Proses...';
-            addLog('Mengirim data ke Google Sheets...');
+            btn.innerHTML = 'Mengirim...';
+            addLog('Menghubungkan ke Google Sheets...');
+
+            const payload = {
+                timestamp: new Date().toLocaleString('id-ID'),
+                lat: currentCoords.lat,
+                lng: currentCoords.lng,
+                accuracy: currentCoords.accuracy,
+                // Kita kirim base64 jika perlu, tapi biasanya Sheets lebih suka link. 
+                // Untuk demo ini kita kirim metadata saja.
+                note: "Captured via GPS Cam App"
+            };
 
             try {
-                await fetch(SCRIPT_URL, {
+                // Menggunakan fetch dengan mode no-cors untuk Apps Script biasanya butuh penanganan khusus
+                // Disarankan menggunakan POST JSON
+                const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({
-                        timestamp: new Date().toLocaleString('id-ID'),
-                        lat: currentCoords.lat,
-                        lng: currentCoords.lng,
-                        accuracy: currentCoords.accuracy,
-                        note: "Capture v2.1"
-                    })
+                    mode: 'no-cors', // Penting untuk Apps Script tanpa CORS header
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
 
-                addLog('Data terkirim dengan sukses.', 'success');
-                showModal('✅', 'Berhasil', 'Data lokasi telah dicatat di Google Sheets.');
+                // Karena no-cors, kita tidak bisa baca response body secara detail
+                addLog('Data berhasil dikirim!', 'success');
+                showModal('✅', 'Berhasil!', 'Data lokasi dan waktu telah dikirim ke Google Sheets.');
+                
+                // Reset View
                 document.getElementById('btnRetake').click();
+
             } catch (err) {
-                addLog('Kirim data gagal: ' + err.message, 'error');
-                showModal('❌', 'Gagal Kirim', 'Periksa koneksi internet atau URL Script Anda.');
+                addLog('Gagal kirim: ' + err.message, 'error');
+                showModal('❌', 'Gagal Kirim', 'Terjadi kesalahan koneksi atau URL Script salah.');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Kirim';
+                btn.innerHTML = originalText;
             }
         };
 
+        // UI Helpers
         function showModal(icon, title, msg) {
             document.getElementById('modalIcon').textContent = icon;
             document.getElementById('modalTitle').textContent = title;
@@ -365,9 +285,14 @@
         }
 
         setInterval(() => {
-            const d = new Date();
-            document.getElementById('logClock').textContent = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('id-ID');
         }, 1000);
+
+        window.onload = () => {
+            initCamera();
+            watchLocation();
+        };
     </script>
 </body>
 </html>
