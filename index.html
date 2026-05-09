@@ -3,209 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPS Cam Pro - Cinematic v4.0</title>
+    <title>GPS Cam Pro - Native App v5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Menambahkan manifest untuk PWA (Langkah awal jadi APK) -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkdQUyBDYW0gUHJvIiwKICAic2hvcnRfbmFtZSI6ICJHUFNDYW0iLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzAyMDYxNyIsCiAgInRoZW1lX2NvbG9yIjogIiMwMjA2MTciCn0=">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap');
         
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; }
         .mono { font-family: 'JetBrains Mono', monospace; }
 
-        .video-container {
-            position: relative;
+        .app-container {
             width: 100%;
             max-width: 500px;
-            aspect-ratio: 3/4;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
             margin: 0 auto;
-            border-radius: 2rem;
+        }
+
+        .preview-box {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: #0f172a;
+            border-radius: 2.5rem;
             overflow: hidden;
-            background: #000;
+            border: 2px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        
-        #videoFeed {
+
+        #resultImage {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        .mirror { transform: scaleX(-1); }
+        .btn-action {
+            width: 100%;
+            max-width: 320px;
+            padding: 1.25rem;
+            border-radius: 1.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
 
-        /* Watermark Overlay yang Meniru Hasil Akhir */
-        .watermark-live {
+        .btn-camera { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .btn-send { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .btn-retake { background: #1e293b; color: #94a3b8; }
+
+        .overlay-info {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
             padding: 1.5rem;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
             pointer-events: none;
         }
 
-        .overlay-step {
-            position: absolute;
+        .step-overlay {
+            position: fixed;
             inset: 0;
-            background: #0f172a;
+            background: #020617;
             z-index: 100;
-            padding: 2rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            padding: 2rem;
             text-align: center;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary:active { transform: scale(0.95); opacity: 0.9; }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
-
-        #capturedCanvas { display: none; }
+        #cameraTrigger { display: none; }
     </style>
 </head>
-<body class="bg-[#020617] text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body>
 
-    <header class="mb-6 text-center">
-        <h1 class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent italic">
-            GPS CAM PRO
-        </h1>
-        <div class="flex items-center justify-center gap-2 mt-1">
-            <span id="gpsDot" class="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-            <span id="gpsText" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sinyal GPS Terputus</span>
+    <div class="app-container">
+        
+        <!-- STEP 1: LOGIN -->
+        <div id="stepLogin" class="step-overlay">
+            <div class="w-24 h-24 mb-8 bg-blue-500/10 rounded-[2.5rem] flex items-center justify-center text-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <h1 class="text-3xl font-black mb-2 tracking-tighter">IDENTITAS UNIT</h1>
+            <p class="text-slate-500 text-sm mb-10">Masukkan nomor plat untuk memulai pelaporan</p>
+            
+            <input type="text" id="inputPlat" placeholder="KH 1234 ABC" 
+                   class="w-full max-w-xs bg-slate-900 border-2 border-slate-800 rounded-2xl px-6 py-5 text-center text-3xl font-black uppercase focus:border-blue-500 transition-all mb-8 text-white">
+            
+            <button id="btnProceed" class="btn-action btn-camera text-white shadow-xl shadow-blue-500/20">
+                MASUK APLIKASI
+            </button>
         </div>
-    </header>
 
-    <main class="w-full max-w-lg space-y-6">
-        <div class="video-container group">
-            
-            <!-- STEP 1: Login Plat -->
-            <div id="stepLogin" class="overlay-step">
-                <div class="w-20 h-20 mb-6 bg-blue-500/10 rounded-3xl flex items-center justify-center text-blue-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                </div>
-                <h2 class="text-2xl font-extrabold mb-2">Data Kendaraan</h2>
-                <p class="text-slate-400 text-sm mb-8">Masukkan nomor plat untuk identitas foto</p>
-                
-                <div class="w-full max-w-xs relative mb-8">
-                    <input type="text" id="inputPlat" placeholder="B 1234 ABC" 
-                           class="w-full bg-slate-900/50 border-2 border-slate-700 rounded-2xl px-6 py-5 text-center text-3xl font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all text-white placeholder:text-slate-700 shadow-2xl">
-                </div>
-                
-                <button id="btnProceed" class="btn-primary w-full max-w-xs py-5 rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 uppercase tracking-wider">
-                    Buka Kamera
-                </button>
+        <header class="mb-6 text-center">
+            <h2 class="text-xl font-black italic tracking-tighter bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                RICKY YUSUF SAPUTRA
+            </h2>
+            <div class="flex items-center justify-center gap-2 mt-1">
+                <span id="gpsDot" class="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+                <span id="gpsText" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sinyal GPS Lemah</span>
             </div>
+        </header>
 
-            <!-- Preview Kamera -->
-            <video id="videoFeed" autoplay playsinline></video>
-            
-            <!-- Preview Hasil (Setelah Foto) -->
-            <div id="previewContainer" class="absolute inset-0 hidden bg-black z-20">
-                <img id="resultImage" class="w-full h-full object-contain" src="" alt="Captured">
+        <!-- Preview Box -->
+        <div class="preview-box mb-8">
+            <!-- Icon placeholder jika belum ada foto -->
+            <div id="cameraIcon" class="text-slate-800">
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </div>
             
-            <!-- Watermark Real-time (Tampilan Langsung di Kamera) -->
-            <div id="liveWatermark" class="watermark-live z-10 transition-opacity duration-500">
+            <img id="resultImage" class="hidden" src="" alt="Captured">
+            
+            <!-- Watermark untuk tampilan di APP -->
+            <div id="appWatermark" class="overlay-info hidden">
                 <div class="flex items-center gap-3 mb-2">
-                    <div class="h-8 w-1 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></div>
-                    <div class="bg-emerald-500 text-slate-950 px-2.5 py-0.5 rounded-md font-black text-[12px] tracking-widest" id="displayPlat">--</div>
+                    <div class="h-10 w-1 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></div>
+                    <div class="flex flex-col">
+                        <span id="displayPlat" class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded font-black text-[12px] w-fit mb-0.5">--</span>
+                        <span class="text-emerald-400 text-[10px] font-black uppercase">RICKY YUSUF SAPUTRA</span>
+                    </div>
                 </div>
                 <div class="space-y-0.5">
-                    <p id="liveAddr" class="text-white text-[13px] font-bold leading-tight drop-shadow-lg">Mencari lokasi...</p>
-                    <p id="liveTime" class="text-slate-300 text-[11px] font-medium mono">--:--:--</p>
-                    <p id="liveCoords" class="text-slate-400 text-[9px] mono tracking-widest uppercase">GPS: 0.0000, 0.0000</p>
+                    <p id="addrText" class="text-white text-[13px] font-bold leading-tight">Mendapatkan alamat...</p>
+                    <p id="timeText" class="text-slate-300 text-[11px] font-medium mono">--:--:--</p>
                 </div>
             </div>
         </div>
 
-        <!-- Kontrol Utama -->
-        <div id="controls" class="flex items-center justify-center gap-6 opacity-0 translate-y-10 transition-all duration-700">
-            <button id="btnCapture" class="h-20 w-20 rounded-full bg-white border-[6px] border-slate-800 shadow-2xl flex items-center justify-center active:scale-90 transition-transform">
-                <div class="h-14 w-14 rounded-full bg-slate-900 flex items-center justify-center">
-                    <div class="h-6 w-6 rounded-full bg-white"></div>
-                </div>
-            </button>
+        <!-- Tombol Kontrol -->
+        <div class="w-full flex flex-col items-center gap-4">
+            <!-- Input file capture camera (Kunci ke HP Camera) -->
+            <input type="file" accept="image/*" capture="camera" id="cameraTrigger">
             
-            <div id="postCaptureActions" class="hidden flex items-center gap-4">
-                <button id="btnRetake" class="bg-slate-800 hover:bg-slate-700 p-5 rounded-3xl text-white shadow-lg transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <button id="btnOpenCam" class="btn-action btn-camera text-white shadow-xl shadow-blue-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                AMBIL FOTO BAGUS
+            </button>
+
+            <div id="postCapture" class="hidden w-full flex flex-col items-center gap-4">
+                <button id="btnSend" class="btn-action btn-send text-white shadow-xl shadow-emerald-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    SIMPAN & DOWNLOAD
                 </button>
-                <button id="btnSend" class="btn-success px-8 py-5 rounded-3xl font-black text-white shadow-xl shadow-emerald-500/20 flex items-center gap-3 active:scale-95 transition-all">
-                    <span>SIMPAN & SYNC</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <button id="btnRetake" class="btn-action btn-retake">
+                    AMBIL ULANG
                 </button>
             </div>
         </div>
-    </main>
+    </div>
 
-    <canvas id="capturedCanvas"></canvas>
+    <!-- Hidden Canvas untuk pengolahan gambar -->
+    <canvas id="procCanvas" style="display:none"></canvas>
 
-    <!-- Modal Status Minimalis -->
+    <!-- Modal Status -->
     <div id="modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-6 z-[200]">
-        <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl">
-            <div id="modalIcon" class="mb-4 text-5xl">✅</div>
+        <div class="bg-slate-900 border border-slate-800 p-10 rounded-[3rem] max-w-sm w-full text-center shadow-2xl">
+            <div id="modalIcon" class="mb-4 text-6xl">✅</div>
             <h3 id="modalTitle" class="text-xl font-bold mb-2">Berhasil</h3>
-            <p id="modalMsg" class="text-slate-500 text-sm mb-8 leading-relaxed"></p>
-            <button onclick="closeModal()" class="w-full bg-slate-800 hover:bg-slate-700 py-4 rounded-2xl font-bold transition-all text-white">Lanjutkan</button>
+            <p id="modalMsg" class="text-slate-500 text-sm mb-10 leading-relaxed"></p>
+            <button onclick="location.reload()" class="w-full bg-slate-800 py-5 rounded-2xl font-bold text-white uppercase tracking-widest">Selesai</button>
         </div>
     </div>
 
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywUWR4cdbbccCXETV026CvOIPYO4YmA_k32l9WBUotQjzIDpn2LcwP0VjbC4BnWR8g/exec"; 
 
-        const video = document.getElementById('videoFeed');
-        const canvas = document.getElementById('capturedCanvas');
+        const cameraTrigger = document.getElementById('cameraTrigger');
         const resultImg = document.getElementById('resultImage');
-        const previewContainer = document.getElementById('previewContainer');
-        const controls = document.getElementById('controls');
-        const liveWatermark = document.getElementById('liveWatermark');
+        const canvas = document.getElementById('procCanvas');
+        const addrText = document.getElementById('addrText');
+        const timeText = document.getElementById('timeText');
+        const gpsDot = document.getElementById('gpsDot');
+        const gpsText = document.getElementById('gpsText');
         
-        let currentCoords = { lat: 0, lng: 0, accuracy: 0 };
+        let currentCoords = { lat: 0, lng: 0 };
         let fullAddress = "";
         let nomorPlat = "";
-        let stream = null;
 
-        // --- INISIALISASI ---
-        document.getElementById('btnProceed').onclick = async () => {
+        // --- LOGIN & GPS ---
+        document.getElementById('btnProceed').onclick = () => {
             const val = document.getElementById('inputPlat').value.trim();
-            if (!val) return;
+            if (!val) return alert("Masukkan nomor plat!");
             nomorPlat = val.toUpperCase();
             document.getElementById('displayPlat').textContent = nomorPlat;
-            
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: { ideal: 'environment' } }, 
-                    audio: false 
-                });
-                video.srcObject = stream;
-                if (stream.getVideoTracks()[0].getSettings().facingMode === 'user') video.classList.add('mirror');
-                
-                initGPS();
-                document.getElementById('stepLogin').style.display = 'none';
-                controls.classList.remove('opacity-0', 'translate-y-10');
-            } catch (err) {
-                alert("Harap izinkan kamera untuk menggunakan aplikasi ini.");
-            }
+            document.getElementById('stepLogin').style.display = 'none';
+            initGPS();
         };
 
         function initGPS() {
             navigator.geolocation.watchPosition((pos) => {
-                currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy.toFixed(1) };
-                
-                // Update Subtle Status
-                const dot = document.getElementById('gpsDot');
-                const txt = document.getElementById('gpsText');
-                dot.className = 'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';
-                txt.textContent = `GPS Aktif (${currentCoords.accuracy}m)`;
-                txt.classList.add('text-emerald-500');
-
-                document.getElementById('liveCoords').textContent = `GPS: ${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}`;
+                currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                gpsDot.className = 'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]';
+                gpsText.textContent = `GPS Aktif (${pos.coords.accuracy.toFixed(1)}m)`;
+                gpsText.classList.replace('text-slate-500', 'text-emerald-500');
                 fetchAddress(currentCoords.lat, currentCoords.lng);
             }, null, { enableHighAccuracy: true });
         }
@@ -217,98 +222,70 @@
                 if (data && data.address) {
                     const a = data.address;
                     // Prioritas: Jalan -> Desa -> Kabupaten -> Provinsi
-                    const road = a.road || a.pedestrian || a.path || "";
-                    const village = a.village || a.suburb || a.hamlet || a.town || a.neighbourhood || "";
-                    const regency = a.city || a.regency || a.county || "";
-                    const province = a.state || "";
-
-                    const parts = [road, village, regency, province].filter(Boolean);
+                    const parts = [
+                        a.road || a.pedestrian || a.path || "",
+                        a.village || a.suburb || a.hamlet || a.town || "",
+                        a.city || a.regency || a.county || "",
+                        a.state || ""
+                    ].filter(Boolean);
                     fullAddress = parts.join(', ');
-                    document.getElementById('liveAddr').textContent = fullAddress || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    addrText.textContent = fullAddress || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                 }
             } catch (e) {
                 fullAddress = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                document.getElementById('liveAddr').textContent = fullAddress;
+                addrText.textContent = fullAddress + " (Sensor Sibuk)";
             }
         }
 
-        // Timer Jam Real-time di Watermark
-        setInterval(() => {
-            document.getElementById('liveTime').textContent = new Date().toLocaleString('id-ID', { 
-                dateStyle: 'medium', 
-                timeStyle: 'medium' 
-            });
-        }, 1000);
+        // --- NATIVE CAMERA TRIGGER ---
+        document.getElementById('btnOpenCam').onclick = () => cameraTrigger.click();
 
-        // --- PROSES FOTO ---
-        document.getElementById('btnCapture').onclick = () => {
-            const w = video.videoWidth;
-            const h = video.videoHeight;
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            
-            if (video.classList.contains('mirror')) { ctx.translate(w, 0); ctx.scale(-1, 1); }
-            ctx.drawImage(video, 0, 0, w, h);
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            
-            // Draw Watermark on Canvas
-            const fontSize = Math.max(20, Math.floor(w / 30));
-            ctx.font = `bold ${fontSize}px "Jakarta Sans", sans-serif`;
-            
-            const ts = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
-            const lines = [
-                `PLAT : ${nomorPlat}`,
-                `LOC  : ${fullAddress}`,
-                `TS   : ${ts}`,
-                `GPS  : ${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}`
-            ];
+        cameraTrigger.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-            const padding = 40;
-            const boxH = (lines.length * (fontSize + 16)) + (padding * 2);
-            
-            // Gradient Background
-            const grad = ctx.createLinearGradient(0, h - boxH, 0, h);
-            grad.addColorStop(0, 'transparent');
-            grad.addColorStop(0.3, 'rgba(0,0,0,0.8)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.95)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, h - boxH, w, boxH);
-            
-            ctx.fillStyle = '#10b981';
-            ctx.fillRect(0, h - boxH + padding, 12, boxH - (padding * 2));
-            
-            ctx.fillStyle = '#ffffff';
-            lines.forEach((l, i) => ctx.fillText(l, padding + 10, h - boxH + padding + (i * (fontSize + 16)) + fontSize));
-
-            resultImg.src = canvas.toDataURL('image/jpeg', 0.95);
-            previewContainer.classList.remove('hidden');
-            liveWatermark.classList.add('opacity-0');
-            
-            document.getElementById('btnCapture').classList.add('hidden');
-            document.getElementById('postCaptureActions').classList.remove('hidden');
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Tampilkan di UI
+                    resultImg.src = event.target.result;
+                    resultImg.classList.remove('hidden');
+                    document.getElementById('cameraIcon').classList.add('hidden');
+                    document.getElementById('appWatermark').classList.remove('hidden');
+                    document.getElementById('btnOpenCam').classList.add('hidden');
+                    document.getElementById('postCapture').classList.remove('hidden');
+                    
+                    // Update Waktu di UI saat foto dipilih
+                    timeText.textContent = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         };
 
         document.getElementById('btnRetake').onclick = () => {
-            previewContainer.classList.add('hidden');
-            liveWatermark.classList.remove('opacity-0');
-            document.getElementById('btnCapture').classList.remove('hidden');
-            document.getElementById('postCaptureActions').classList.add('hidden');
+            resultImg.classList.add('hidden');
+            document.getElementById('cameraIcon').classList.remove('hidden');
+            document.getElementById('appWatermark').classList.add('hidden');
+            document.getElementById('btnOpenCam').classList.remove('hidden');
+            document.getElementById('postCapture').classList.add('hidden');
+            cameraTrigger.value = "";
         };
 
-        // --- SIMPAN ---
+        // --- SIMPAN & DOWNLOAD ---
         document.getElementById('btnSend').onclick = async () => {
             const btn = document.getElementById('btnSend');
             btn.disabled = true;
             btn.innerHTML = 'MENYIMPAN...';
-            
-            // Download Lokal
+
+            // 1. Download Lokal (Hasil foto bersih dari kamera HP)
             const link = document.createElement('a');
-            link.download = `${nomorPlat}_${new Date().getTime()}.jpg`;
+            link.download = `RICKY_Y_SAPUTRA_${nomorPlat}_${new Date().getTime()}.jpg`;
             link.href = resultImg.src;
             link.click();
-            
-            // Upload Cloud
+
+            // 2. Kirim ke Google Cloud (Base64)
             const imgBase = resultImg.src.split(',')[1];
             try {
                 await fetch(SCRIPT_URL, {
@@ -316,6 +293,7 @@
                     mode: 'no-cors',
                     body: JSON.stringify({
                         plat: nomorPlat,
+                        name: "Ricky Yusuf Saputra",
                         address: fullAddress,
                         lat: currentCoords.lat,
                         lng: currentCoords.lng,
@@ -323,33 +301,24 @@
                         timestamp: new Date().toLocaleString('id-ID').replace(/\//g, '-')
                     })
                 });
-                showModal('✅', 'Berhasil Disimpan', `Foto ${nomorPlat} telah tersimpan di Galeri & Google Drive.`);
-                document.getElementById('btnRetake').click();
+                
+                document.getElementById('modalIcon').textContent = '✅';
+                document.getElementById('modalTitle').textContent = 'Tersimpan!';
+                document.getElementById('modalMsg').textContent = `Foto kualitas asli telah disimpan di galeri HP dan Google Drive.`;
+                document.getElementById('modal').classList.remove('hidden');
+                document.getElementById('modal').classList.add('flex');
             } catch (err) {
-                showModal('⚠️', 'Hanya Simpan Lokal', 'Gagal kirim ke Drive, namun foto sudah ada di galeri HP Anda.');
+                alert("Berhasil simpan lokal, namun gagal kirim ke Drive.");
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'SIMPAN & SYNC';
+                btn.innerHTML = 'SIMPAN & DOWNLOAD';
             }
         };
-
-        function showModal(icon, title, msg) {
-            document.getElementById('modalIcon').textContent = icon;
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalMsg').textContent = msg;
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('modal').classList.add('flex');
-        }
 
         function closeModal() {
             document.getElementById('modal').classList.add('hidden');
             document.getElementById('modal').classList.remove('flex');
         }
-
-        document.getElementById('btnRefreshAddr').onclick = (e) => {
-            e.stopPropagation();
-            fetchAddress(currentCoords.lat, currentCoords.lng);
-        };
     </script>
 </body>
 </html>
