@@ -36,17 +36,18 @@
             border-radius: 50%;
             display: inline-block;
         }
-        #startOverlay {
+        /* CSS Diperbaiki: Menggunakan class agar bisa di-override oleh .hidden */
+        .overlay-start {
             position: absolute;
             inset: 0;
             background: rgba(15, 23, 42, 0.98);
+            z-index: 40;
+            text-align: center;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 40;
-            text-align: center;
-            padding: 20px;
         }
     </style>
 </head>
@@ -56,13 +57,13 @@
         <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
             GPS Camera Watermark Pro
         </h1>
-        <p class="text-slate-500 text-xs mt-1">Versi Stabil dengan Deteksi Otomatis</p>
+        <p class="text-slate-500 text-xs mt-1">Versi Stabil - Fix Tampilan Overlay</p>
     </header>
 
     <main class="w-full max-w-2xl space-y-4">
         <div class="video-container shadow-2xl border-2 border-slate-700">
-            <!-- Layar Mulai untuk Memicu Perijinan -->
-            <div id="startOverlay">
+            <!-- Layar Mulai -->
+            <div id="startOverlay" class="overlay-start">
                 <div class="mb-4 text-blue-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                 </div>
@@ -109,7 +110,7 @@
             </button>
         </div>
 
-        <!-- System Logs Mini -->
+        <!-- System Logs -->
         <div class="bg-slate-800/80 rounded-xl p-3 text-[10px] font-mono border border-slate-700 shadow-inner">
             <div class="flex justify-between text-slate-500 mb-1 border-b border-slate-700 pb-1 uppercase tracking-widest">
                 <span>System Logs</span>
@@ -123,8 +124,7 @@
 
     <canvas id="capturedCanvas"></canvas>
 
-    <!-- Modal Pesan Custom -->
-    <div id="modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-6 z-50 animate-in fade-in duration-300">
+    <div id="modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-6 z-50">
         <div class="bg-slate-800 p-6 rounded-2xl max-w-sm w-full text-center border border-slate-700 shadow-2xl">
             <div id="modalIcon" class="mb-4 text-5xl">❌</div>
             <h3 id="modalTitle" class="text-xl font-bold mb-2">Status</h3>
@@ -134,7 +134,6 @@
     </div>
 
     <script>
-        // URL Web App Google Apps Script yang Anda berikan
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzH1PISFM2wq5o1ksN1XgqtyYrY4_yEoVeeiq6SUfi2b4wb3w0Kh9YEq6gGUhvTaaP6/exec"; 
 
         const video = document.getElementById('videoFeed');
@@ -162,7 +161,6 @@
             entry.className = colors[type] || colors.info;
             entry.textContent = `> ${msg}`;
             logEntries.prepend(entry);
-            console.log(`[LOG] ${msg}`);
         }
 
         async function initApp() {
@@ -170,7 +168,7 @@
             
             try {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('Browser tidak mendukung akses kamera/media.');
+                    throw new Error('Browser tidak mendukung akses kamera.');
                 }
 
                 const constraints = [
@@ -185,7 +183,7 @@
                         successfulStream = await navigator.mediaDevices.getUserMedia(constraint);
                         if (successfulStream) break;
                     } catch (e) {
-                        addLog('Kamera belakang tidak dapat diakses, mencoba mode lain...', 'warning');
+                        addLog('Gagal akses salah satu kamera, mencoba mode lain...', 'warning');
                     }
                 }
 
@@ -198,32 +196,26 @@
                 const settings = track.getSettings();
                 if (settings.facingMode === 'user' || !settings.facingMode) {
                     video.classList.add('mirror');
-                    addLog('Mode kamera depan (mirror) aktif.');
+                    addLog('Mode kamera depan aktif.');
                 }
 
                 addLog('Kamera berhasil diaktifkan.', 'success');
                 initGPS();
 
-                startOverlay.classList.add('hidden');
+                // PERBAIKAN: Memaksa overlay hilang dengan memanipulasi display langsung
+                startOverlay.style.display = 'none'; 
                 controlsGroup.classList.remove('opacity-30', 'pointer-events-none');
 
             } catch (err) {
                 console.error(err);
-                addLog(`ERROR: ${err.name} - ${err.message}`, 'error');
-                
-                let userMsg = "Gagal mengakses kamera. ";
-                if (err.name === 'NotAllowedError') userMsg += "Anda menolak izin. Silakan reset izin di browser.";
-                else if (err.name === 'NotFoundError') userMsg += "Perangkat kamera tidak ditemukan.";
-                else if (err.name === 'NotReadableError') userMsg += "Kamera mungkin sedang digunakan aplikasi lain.";
-                else userMsg += err.message;
-
-                showModal('❌', 'Error Perangkat', userMsg);
+                addLog(`ERROR: ${err.name}`, 'error');
+                showModal('❌', 'Error Perangkat', err.message);
             }
         }
 
         function initGPS() {
             if (!navigator.geolocation) {
-                addLog('GPS tidak didukung oleh browser ini.', 'error');
+                addLog('GPS tidak didukung.', 'error');
                 return;
             }
 
@@ -242,7 +234,7 @@
                 (err) => {
                     addLog('GPS Error: ' + err.message, 'error');
                     gpsStatusDot.className = 'status-dot bg-red-500';
-                    gpsStatusText.textContent = 'GPS: ERROR/MATI';
+                    gpsStatusText.textContent = 'GPS: ERROR';
                 },
                 { enableHighAccuracy: true, timeout: 20000 }
             );
@@ -268,10 +260,9 @@
             const fontSize = Math.max(16, Math.floor(width / 32));
             ctx.font = `bold ${fontSize}px "Segoe UI", Roboto, monospace`;
             
-            const timestamp = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
             const lines = [
                 `LOKASI : ${currentCoords.lat}, ${currentCoords.lng}`,
-                `WAKTU  : ${timestamp}`,
+                `WAKTU  : ${new Date().toLocaleString('id-ID')}`,
                 `AKURASI: ${currentCoords.accuracy}m`
             ];
 
@@ -290,7 +281,6 @@
             document.getElementById('btnCapture').classList.add('hidden');
             document.getElementById('btnRetake').classList.remove('hidden');
             document.getElementById('btnSend').classList.remove('hidden');
-            addLog('Foto berhasil diproses dengan watermark.');
         };
 
         document.getElementById('btnRetake').onclick = () => {
@@ -315,12 +305,12 @@
                         lat: currentCoords.lat,
                         lng: currentCoords.lng,
                         accuracy: currentCoords.accuracy,
-                        note: "Capture vPro"
+                        note: "Fix Overlay Capture"
                     })
                 });
 
-                addLog('Data berhasil dikirim ke antrian Google.', 'success');
-                showModal('✅', 'Berhasil Terkirim', 'Data lokasi telah berhasil dicatat di Google Sheets.');
+                addLog('Data berhasil dikirim.', 'success');
+                showModal('✅', 'Berhasil', 'Data lokasi telah dicatat di Google Sheets.');
                 document.getElementById('btnRetake').click();
             } catch (err) {
                 addLog('Gagal mengirim: ' + err.message, 'error');
@@ -345,8 +335,7 @@
         }
 
         setInterval(() => {
-            const d = new Date();
-            document.getElementById('logClock').textContent = d.toLocaleTimeString('id-ID');
+            document.getElementById('logClock').textContent = new Date().toLocaleTimeString('id-ID');
         }, 1000);
     </script>
 </body>
